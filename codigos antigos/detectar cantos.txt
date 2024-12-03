@@ -1,0 +1,38 @@
+import cv2
+import numpy as np
+
+def detect_corners(img, lower_color, upper_color):
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, lower_color, upper_color)
+    return mask
+
+def detect_contours(mask):
+    edges = cv2.Canny(mask, 50, 150)
+    contours, _ = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    return contours
+
+def calculate_object_position(img, contours):
+    cv2.drawContours(img, contours, -1, (0, 255, 0), 3)
+    height, width, _ = img.shape
+    object_center = (width // 2, height // 2)
+    distances = [cv2.pointPolygonTest(contour, object_center, True) for contour in contours]
+    closest_contour = contours[np.argmin(distances)]
+    distance = min(distances)
+    return distance, closest_contour
+
+img = cv2.imread('.\imagens\Captura de tela 2024-08-27 172703.png')
+img = cv2.resize(img, (0, 0), fx=0.75, fy=0.75)
+
+lower_color = np.array([0, 0, 200])
+upper_color = np.array([180, 255, 255])
+
+mask = detect_corners(img, lower_color, upper_color)
+
+contours = detect_contours(mask)
+
+distance, closest_contour = calculate_object_position(img, contours)
+
+cv2.putText(img, f'Distance: {distance:.2f}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+cv2.imshow('Detected Corners', img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
