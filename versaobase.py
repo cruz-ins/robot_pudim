@@ -1,8 +1,9 @@
 import cv2
 import numpy as np
 from ultralytics import YOLO
-import csv
 import pandas as pd
+import gpiozero as Robot
+import time
 
 
 # Função para detectar pessoas e retornar as coordenadas do bounding box
@@ -27,37 +28,33 @@ def medir_distancia(bboxes):
     return distCMT
 
     
-
-# pass
-# #-------------movimento-------------
-# def movimento():
-#     if(notperson):
-#         #virar esquerda
-#         pass
-#     elif(person < 100):
-#         print("Caminho livre!")
-#         # Seguir em frente
-#     elif(person > 300):
-#         print("Pessoa detectada!")
-#         # Parar o robô
-#     elif(distancia < 30):
-#         print("Obstáculo detectado!")
-#         # Realizar manobra para desviar do obstáculo
-#         movimento = a_star(mapa, inicio, objetivo)
-#     pass
+#-------------movimento-------------
+def movimento(distancia):
+    if(distancia < 50):
+        robot.left()
+        print("esquerda")
+    elif(distancia > 150):
+        robot.stop()
+        print("parar")
+    elif(distancia < 150):
+        robot.forward()
+        print("frente")
 
 # Código principal
 
+#carregar os dados
 df = pd.read_csv('armazenamento_atualizado.csv')
-
 distPixels = df['Distancia'].values
 distCM = df['Centimetros'].values
 
+#webcam 
 video = cv2.VideoCapture(0)
 
-model = YOLO(r"modelo\yolo11n.pt")
+#dados do robo
+robot = Robot(left=(22, 23), right=(27, 24))
 
-verificar = []
+# Carregar o modelo YOLO
+model = YOLO(r"modelo\yolo11n.pt")
 
 # Capturar o vídeo ou imagem
 while video.isOpened():
@@ -67,18 +64,17 @@ while video.isOpened():
         pessoa, bboxes = detectar_pessoa(frame, model)
         if bboxes:
             distancia = medir_distancia(bboxes)
-            verificar.append(distancia)
-            print(distancia)
+            movimento(distancia)
+        else:
+            movimento(0)
+
         # Mostrar os quadros anotados
         cv2.imshow("Detectar pessoas", pessoa)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+        time.sleep(0.5)
     else:
         break
 
-# Imprimir as distancias
-for grupo in range(0, len(verificar), 10):
-    print(verificar[grupo:grupo+10])
-    print()
 video.release()
 cv2.destroyAllWindows()
