@@ -27,18 +27,31 @@ def medir_distancia(bboxes):
     distCMT = int((A*dist**2)+(B*dist)+C)
     return distCMT
 
-    
 #-------------movimento-------------
 def movimento(distancia):
+    velocidade = velocidade_var(distancia)
     if(distancia < 50):
-        robot.left()
+        robot.left(velocidade)
         print("esquerda")
     elif(distancia > 150):
         robot.stop()
         print("parar")
     elif(distancia < 150):
-        robot.forward()
+        robot.forward(velocidade)
         print("frente")
+
+#-------------velocidade-------------
+
+def velocidade_var(dist, dist_min=50, dist_max=200, vel_min=0.2, vel_max=0.8):
+    """"
+    Calcula a velocidade com base na distância usando uma função sigmoide.
+    """
+    # Normaliza a distância para o intervalo [0, 1]
+    dif_vel = (vel_max-vel_min)
+    dif_dist2 = ((dist_max - dist_min)/2)**2
+    var_vel = dif_vel / dif_dist2
+    pontomedio = (dist_max+dist_min)/2
+    return vel_max - var_vel * ((dist - pontomedio)**2)
 
 # Código principal
 

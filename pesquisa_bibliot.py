@@ -1,5 +1,5 @@
 import cv2
-# import numpy as np
+import numpy as np
 # import ultralytics
 # import pandas as pd
 # import matplotlib.pyplot as plt
@@ -52,3 +52,31 @@ print(torch.__version__)
 # plt.title('Curva de Conversão de Centímetros para Pixels')
 # plt.grid(True)
 # plt.show()
+
+
+
+def velocidade(dist, dist_min=50, dist_max=200, vel_min=0.2, vel_max=0.8):
+    """"
+    Calcula a velocidade com base na distância usando uma função sigmoide.
+    """
+    # Normaliza a distância para o intervalo [0, 1]
+    x = (vel_max-vel_min) / ((dist_max - dist_min)/2)**2
+    pontomedio = (dist_max+dist_min)/2
+    return vel_max - x * ((dist - pontomedio)**2)
+
+# Testando a função para vários valores
+for x in range(50, 201, 10):
+    print(f"x: {x:3d}, f(x): {velocidade(x):.4f}")
+
+""""
+def bump_function(x):
+    # x: valor de entrada, que deve estar no intervalo [50, 200]
+    # A função atinge 1.0 no vértice (x = 125) e 0.2 nas extremidades (x = 50 e x = 200)
+    A = 0.8 / 5625  # 5625 é 75^2, onde 75 é a distância de 50 a 125 ou de 125 a 200
+    print(f"{A}")
+    return 1 - A * (x - 125)**2
+
+# Testando a função para vários valores
+for x in range(50, 201, 10):
+    print(f"x: {x:3d}, f(x): {bump_function(x):.4f}")"
+"""
