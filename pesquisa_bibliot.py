@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
-# import ultralytics
-# import pandas as pd
-# import matplotlib.pyplot as plt
+import ultralytics
+import pandas as pd
+import matplotlib.pyplot as plt
 import torch 
 
 
@@ -54,11 +54,21 @@ print(torch.__version__)
 # plt.show()
 
 
+# Carregar o arquivo CSV
+df = pd.read_csv('armazenamento_atualizado.csv')
+
+# Inverter a coluna 'Centimetros'
+df['Centimetros'] = df['Centimetros'][::-1].reset_index(drop=True)
+
+# Salvar o DataFrame atualizado em um novo arquivo CSV
+df.to_csv('armazenamento_invertido.csv', index=False)
+
+print("Coluna 'Centimetros' invertida e salva em 'armazenamento_invertido.csv'")
+
+"""
 
 def velocidade(dist, dist_min=50, dist_max=200, vel_min=0.2, vel_max=0.8):
-    """"
-    Calcula a velocidade com base na distância usando uma função sigmoide.
-    """
+    # Calcula a velocidade com base na distância usando uma função sigmoide.
     # Normaliza a distância para o intervalo [0, 1]
     x = (vel_max-vel_min) / ((dist_max - dist_min)/2)**2
     pontomedio = (dist_max+dist_min)/2
@@ -68,7 +78,7 @@ def velocidade(dist, dist_min=50, dist_max=200, vel_min=0.2, vel_max=0.8):
 for x in range(50, 201, 10):
     print(f"x: {x:3d}, f(x): {velocidade(x):.4f}")
 
-""""
+
 def bump_function(x):
     # x: valor de entrada, que deve estar no intervalo [50, 200]
     # A função atinge 1.0 no vértice (x = 125) e 0.2 nas extremidades (x = 50 e x = 200)
