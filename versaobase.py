@@ -1,9 +1,9 @@
 import cv2
 import numpy as np
 from ultralytics import YOLO
-import pandas as pd
 import gpiozero as Robot
 import time
+import json
 
 
 # Função para detectar pessoas e retornar as coordenadas do bounding box
@@ -51,13 +51,25 @@ def velocidade_var(dist, dist_min=50, dist_max=200, vel_min=0.2, vel_max=0.8):
     var_vel = dif_vel / dif_dist2
     pontomedio = (dist_max+dist_min)/2
     return vel_max - var_vel * ((dist - pontomedio)**2)
+"""
+#calibragem
+class Calibragem:
+    def __init__(self, distPixels, distCM):
+        self.distPixels = distPixels
+        self.distCM = distCM
 
+    def calibrar(self):
+        coef = np.polyfit(self.distPixels, self.distCM, 2)
+        A, B, C = coef
+        return A, B, C
+"""
 # Código principal
 
 #carregar os dados
-df = pd.read_csv('armazenamento_invertido.csv')
-distPixels = df['Distancia'].values
-distCM = df['Centimetros'].values
+with open('conversao_medidas.json', 'r') as f:
+    json_data = json.load(f)
+distPixels = np.array([item['area_px']   for item in json_data])
+distCM = np.array([item['dist_cm']   for item in json_data])
 
 #webcam 
 video = cv2.VideoCapture(0)
