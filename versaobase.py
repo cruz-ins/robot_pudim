@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from ultralytics import YOLO
-import gpiozero as Robot
+from gpiozero import Robot
 import time
 import json
 
@@ -18,26 +18,48 @@ def detectar_pessoa(frame, model):
     return annotated_frame, bboxes
 
 # #-------------medir distancia-------------
-def medir_distancia(bboxes):
-    for box in bboxes:
-        x1, y1, x2, y2 = box
-        dist = int((abs(x1-x2)))
-    coef = np.polyfit(distPixels, distCM, 2)
-    A, B, C = coef
-    distCMT = int((A*dist**2)+(B*dist)+C)
-    return distCMT
+def medir_distancia(bboxes, região_esquerda, região_direita):
+    x1, y1, x2, y2 = bboxes[0]
 
-#-------------movimento-------------
+    largura = x2 - x1
+    altura  = y2 - y1
+    área_px = largura * altura
+    print(f"Área (px): {área_px}")
+
+    # aplica polinômio calibrado
+    distCMT = A * área_px**2 + B * área_px + C
+    print(f"Distância (cm): {distCMT:.1f}")
+    if x1 < região_esquerda:
+        return 0
+    if x1 > região_direita:
+        return -2
+    return int(distCMT)
+
+#-------------movimentro-------------
 def movimento(distancia):
     if(distancia == 0):
-        #robot.left(0.3)
-        print("esquerda")
-    elif(distancia < 70):
-       # robot.stop()
-        print("parar")
-    elif(distancia > 70):
-       # robot.forward(0.5)
-        print("frente")
+        time.sleep(0.7)
+        robot.left(0.4)
+        time.sleep(0.7)
+        robot.stop()
+    elif(distancia == -2):
+        time.sleep(0.7)
+        robot.right(0.4)
+        time.sleep(0.7)
+        robot.stop()
+    elif(distancia < 80 & distancia > 50):
+        robot.stop()
+        time.sleep(5)
+    elif(distancia > 80):
+        time.sleep(0.7)
+        robot.forward(0.5)
+        time.sleep(0.7)
+        robot.stop()
+    elif(distancia < 50):
+        time.sleep(0.7)
+        robot.backward(0.3)
+        time.sleep(0.7)
+        robot.stop()
 
 #-------------velocidade-------------
 
@@ -64,40 +86,62 @@ class Calibragem:
         return A, B, C
 """
 # Código principal
-
-#carregar os dados
-with open('conversao_medidas.json', 'r') as f:
-    json_data = json.load(f)
-distPixels = np.array([item['area_px']   for item in json_data])
-distCM = np.array([item['dist_cm']   for item in json_data])
-
-#webcam 
-video = cv2.VideoCapture(0)
-
-#dados do robo
-#robot = Robot(left=(22, 23), right=(27, 24))
-
-# Carregar o modelo YOLO
-model = YOLO(r"modelo\yolo11n.pt")
-
 # Capturar o vídeo ou imagem
-while video.isOpened():
-    success, frame = video.read()
+def yolo():
+    while video.isOpened():
+        success, frame = video.read()
 
-    if success:
-        pessoa, bboxes = detectar_pessoa(frame, model)
-        if bboxes:
-            distancia = medir_distancia(bboxes)
-            movimento(distancia)
+        if success:
+            pessoa, bboxes = detectar_pessoa(frame, model)
+            if bboxes:
+                distancia = medir_distancia(bboxes, região_esquerda, região_direita)
+                movimento(distancia)
+            else:
+                movimento(0)
+
+            # Mostrar os quadros anotados
+            cv2.imshow("Detectar pessoas", pessoa)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+            time.sleep(0.01)
         else:
-           movimento(0)
-        # Mostrar os quadros anotados
-        cv2.imshow("Detectar pessoas", pessoa)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-        time.sleep(0.5)
-    else:
-        break
 
-video.release()
-cv2.destroyAllWindows()
+    video.release()
+    cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    # Código principal
+    # Carregar o modelo YOLO
+    model = YOLO(r"modelo\yolo11n.pt", task='detect')
+
+    #dados do robo
+    #robot = Robot(left=(22, 23), right=(27, 17))
+    robot = Robot(left=(12, 6), right=(18, 17))
+
+    SHARED_SHAPE = (480, 640)
+    região_esquerda = SHARED_SHAPE[1] // 10
+    região_direita = 8*(SHARED_SHAPE[1] // 10)
+                                                                                                           
+    #carregar os dados
+    with open('conversao_medidas.json', 'r') as f:
+        json_data = json.load(f)
+    distPixels = np.array([item['area_px']   for item in json_data])
+    distCM = np.array([item['dist_cm']   for item in json_data])
+    # coeficientes A, B, C para converter área→cm
+    A, B, C = np.polyfit(distPixels, distCM, 2)
+
+    #webcam
+    video = cv2.VideoCapture(0)
+    video.set(cv2.CAP_PROP_FRAME_WIDTH, SHARED_SHAPE[1])
+    video.set(cv2.CAP_PROP_FRAME_HEIGHT, SHARED_SHAPE[0])
+
+
+    yolo()
+
+    # Inicia captura em thread separada
+    # capture_thread = Thread(target=camera_capture, args=(shared_dict))
+    # capture_thread.daemon = True
+    # capture_thread.start()
+    # capture_thread.join()
